@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:uno",
+    "programmer": "AVRISP mkII",
+    "sketch": "camera_control\\camera_control.ino",
+    "port": "COM3"
+}
