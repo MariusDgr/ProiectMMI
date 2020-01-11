@@ -7,10 +7,10 @@ void swapInt(int &a, int &b);
 #define zAxisPin 6
 
 // Settings
-int zAxisRightLimit = 0;
-int zAxisLeftLimit = 180;
-int yAxisUpLimit = 300;
-int yAxisDownLimit = -50;
+int zAxisLowLimit = 0;
+int zAxisHighLimit = 180;
+int yAxisLowLimit = 0;
+int yAxisHighLimit = 180;
 
 bool invertedZ = false;
 bool invertedY = false;
@@ -21,7 +21,10 @@ int alarmTime = 1000;
 Servo yAxisServo;
 Servo zAxisServo;
 
-int yAxisAngle = 150;
+int zStartAng = 90;
+int yStartAng = 90;
+
+int yAxisAngle = 90;
 int zAxisAngle = 90;
 
 int angVal = 0;
@@ -31,15 +34,18 @@ int angVal = 0;
 bool detected;
 
 void setup() {
-  if(invertedY){
-    swapInt(yAxisDownLimit, yAxisUpLimit);
-  }
-  if(invertedZ){
-    swapInt(zAxisLeftLimit, zAxisRightLimit);
-  }
+  // if(invertedY){
+  //   swapInt(yAxisHighLimit, yAxisLowLimit);
+  // }
+  // if(invertedZ){
+  //   swapInt(zAxisHighLimit, zAxisLowLimit);
+  // }
   
-  yAxisServo.attach(yAxisPin, yAxisDownLimit, yAxisUpLimit);
-  zAxisServo.attach(zAxisPin, zAxisLeftLimit, zAxisRightLimit);
+  yAxisServo.attach(yAxisPin, yAxisLowLimit, yAxisHighLimit);
+  zAxisServo.attach(zAxisPin, zAxisLowLimit, zAxisHighLimit);
+
+  yAxisAngle = yStartAng;
+  zAxisAngle = zStartAng;
 
   yAxisServo.write(yAxisAngle);
   zAxisServo.write(zAxisAngle);
@@ -63,21 +69,8 @@ void loop() {
     move_camera(yAxisAngle, zAxisAngle);
   }
 
-// int i = 150;
-// for(i=150; i<200; i++){
-//   move_camera(i, zAxisAngle);
-//   delay(50);
-// }
+  test_z_rot(zStartAng, zAxisHighLimit, zAxisLowLimit);
 
-// for(i=200; i>0; i--){
-//   move_camera(i, zAxisAngle);
-//   delay(50);
-// }
-
-// for(i=0; i<150; i++){
-//   move_camera(i, zAxisAngle);
-//   delay(50);
-// }
 
 }
 
@@ -91,4 +84,22 @@ void swapInt(int &a, int &b) {
 
   a = b;
   b = c;
+}
+
+void test_z_rot(int start, int low, int high){
+  int i;
+  for(i=start; i<high; i++){
+    move_camera(i, zAxisAngle);
+    delay(50);
+  }
+
+  for(i=high; i>low; i--){
+    move_camera(i, zAxisAngle);
+    delay(50);
+  }
+
+  for(i=low; i<start; i++){
+    move_camera(i, zAxisAngle);
+    delay(50);
+  }
 }
