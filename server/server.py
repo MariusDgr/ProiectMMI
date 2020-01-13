@@ -1,6 +1,14 @@
 from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse
 
+import serial
+
+# Initialize serial streams
+# serDrink = serial.Serial('COM5', baudrate=9600, timeout=1)
+serCam = serial.Serial('COM5', baudrate=9600, timeout=1)
+if not serCam.isOpen():
+    serCam.open()
+
 # Server states
 cam_security = False
 changedetected = False
@@ -92,11 +100,11 @@ def delete_liquid(name):
 ######### Security module functions ##########
 @app.route("/securitymodule/detected")
 def intruder_detected():
-    print("Checking intruder")
-    global changedetected
+    global changedetected, serCam
     if cam_security is True:
         if changedetected is True:
             changedetected = False
+            serCam.write(b"1")
             return {"detected":True}
 
     return {"detected":False} 
@@ -119,9 +127,6 @@ def security_switch(securityonoff):
         return "Security deactivated"
 
     return "Error setting security"
-
-    
-    
 
 
 if __name__ == "__main__":
