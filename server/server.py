@@ -1,6 +1,11 @@
 from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse
 
+# Server states
+cam_security = False
+changedetected = False
+
+
 app = Flask(__name__)
 api = Api(app)
 
@@ -19,83 +24,105 @@ liquids = [
     }
 ]
 
-class BeverageMachine(Resource):
-    def make_cocktail(self, vol1, vol2):
-        print(vol1, vol2)
 
-class Liquid(Resource):
+class HelloWorld(Resource):
+     def get(self):
+        return {'hello': 'world'}
 
-    def get(self, name):
-        for liquid in liquids:
-            if(name == liquid["name"]):
-                return liquid, 200
-        return "Liquid not found", 404
- 
-    def post(self, name):
-        parser = reqparse.RequestParser()
-        parser.add_argument("volume")
-        args = parser.parse_args()
+api.add_resource(HelloWorld, '/')
 
-        for liquid in liquids:
-            if(name == liquid["name"]):
-                return "Liquid {} already exists",format(name), 400
+############# Beverage maker functions ##############
+@app.route("/beveragemachine/makedrink/<int:num1>/<int:num2>")
+def make_drink(num1, num2):
+    print(num1, num2)
+    return "Ordered drink", 200
 
-        liquid = {
-            "name": name,
-            "volume": 1000,
-        }
+############## Liquid functions ################
+@app.route("/liquid/get/<string:name>")
+def get_liquid(name):
+    print("Called this one")
+    for liquid in liquids:
+        if(name == liquid["name"]):
+            return liquid, 200
+    return "Liquid not found", 404
 
-        liquids.append(liquid)
-        return liquid, 201
- 
-    def put(self, name):
-        parser = reqparse.RequestParser()
-        parser.add_argument("volume")
-        args = parser.parse_args()
+@app.route("/liquid/post/<string:name>/<int:volume>")
+def post_liquid(name):
+    parser = reqparse.RequestParser()
+    parser.add_argument("volume")
+    args = parser.parse_args()
 
-        for liquid in liquids:
-            if(name == liquid["name"]):
-                liquid["volume"] = args["volume"]
-                return liquid, 200
+    for liquid in liquids:
+        if(name == liquid["name"]):
+            return "Liquid {} already exists",format(name), 400
 
-        liquid = {
-            "name": name,
-            "volume": 1000,
-        }
+    liquid = {
+        "name": name,
+        "volume": args["volume"],
+    }
 
-        liquids.append(liquid)
-        return liquid, 201
- 
-    def delete(self, name):
-        global liquids
-        liquids = [liquid for liquid in liquids if liquid["name"] != name]
-        return "Deleted {} liquid.".format("name"), 200
+    liquids.append(liquid)
+    return liquid, 201
 
+@app.route("/liquid/put/<string:name>/<int:volume>")
+def put_liquid(name):
+    parser = reqparse.RequestParser()
+    parser.add_argument("volume")
+    args = parser.parse_args()
 
-api.add_resource(Liquid, "/liquid/<string:name>")
-api.add_resource(BeverageMachine, "/beveragemachine/<int:vol1>/<int:vol2>")
+    for liquid in liquids:
+        if(name == liquid["name"]):
+            liquid["volume"] = args["volume"]
+            return liquid, 200
+
+    liquid = {
+        "name": name,
+        "volume": 1000,
+    }
+
+    liquids.append(liquid)
+    return liquid, 201
+
+@app.route("/liquid/delete/<string:name>")
+def delete_liquid(name):
+    global liquids
+    liquids = [liquid for liquid in liquids if liquid["name"] != name]
+    return "Deleted {} liquid.".format("name"), 200
+
+######### Security module functions ##########
+@app.route("/securitymodule/detected")
+def intruder_detected():
+    print("Checking intruder")
+    global changedetected
+    if cam_security is True:
+        if changedetected is True:
+            changedetected = False
+            return {"detected":True}
+
+    return {"detected":False} 
+
+@app.route("/securitymodule/<int:securityonoff>")
+def security_switch(securityonoff):
+    """Enables or disables camera security"""
+    global cam_security
+
+    if securityonoff == 1:
+        cam_security = True
+    elif securityonoff == 0:
+        cam_security = False
+    else:
+        print("Some strange case")
+    
+    if cam_security is True:
+        return "Security activated"
+    elif cam_security is False:
+        return "Security deactivated"
+
+    return "Error setting security"
+
+    
+    
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# tasks = [
-#     {
-#         'id': 1,
-#         'title': u'Buy groceries',
-#         'description': u'Milk, Cheese, Pizza, Fruit, Tylenol', 
-#         'done': False
-#     },
-#     {
-#         'id': 2,
-#         'title': u'Learn Python',
-#         'description': u'Need to find a good Python tutorial on the web', 
-#         'done': False
-#     }
-# ]
-
-# @app.route('/todo/api/v1.0/tasks', methods=['GET'])
-# def get_tasks():
-#     return jsonify({'tasks': tasks})
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
