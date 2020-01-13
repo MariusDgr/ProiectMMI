@@ -73,7 +73,7 @@ class Liquid(Resource):
 
 
 api.add_resource(Liquid, "/liquid/<string:name>")
-api.add_resource(BeverageMachine, "/beveragemachine/<int:vol1, int:vol2>")
+api.add_resource(BeverageMachine, "/beveragemachine/<int:vol1>/<int:vol2>")
 
 if __name__ == "__main__":
     app.run(debug=True)
