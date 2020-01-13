@@ -19,6 +19,9 @@ liquids = [
     }
 ]
 
+class BeverageMachine(Resource):
+    def make_cocktail(self, vol1, vol2):
+        print(vol1, vol2)
 
 class Liquid(Resource):
 
@@ -70,6 +73,7 @@ class Liquid(Resource):
 
 
 api.add_resource(Liquid, "/liquid/<string:name>")
+api.add_resource(BeverageMachine, "/beveragemachine/<int:vol1, int:vol2>")
 
 if __name__ == "__main__":
     app.run(debug=True)
