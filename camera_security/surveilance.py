@@ -5,11 +5,16 @@ import serial
 import urllib.request
 
 print("Started security app")
+# App settings
+arduinoEnabled = True
+serverEnabled = True
 
-serCam = serial.Serial('COM3', baudrate=9600)
-if not serCam.isOpen():
-    serCam.open()
-print("Started serial")
+
+if arduinoEnabled:
+    serCam = serial.Serial('COM3', baudrate=9600)
+    if not serCam.isOpen():
+        serCam.open()
+    print("Started serial")
 
 camPort = 1
 cam = cv2.VideoCapture(camPort)
@@ -18,8 +23,8 @@ fgbg = cv2.createBackgroundSubtractorMOG2()
 # Server 
 url = "http://127.0.0.1:8080/securitymodule/intruder"
 
-# Logic settings
-intruderThreshold = 3000000
+# Intruder detection settings
+intruderThreshold = 3000000 # smaller value means higher sensitivity
 intruderCooldownTime = 5
 lastTime = time.time()
 
@@ -46,22 +51,24 @@ while True:
             lastTime = time.time()
 
             # Send to arduino
-            try:
-                serCam.write(b'1')
-            except Exception as e:
-                print("Arduino serial might not be started")
+            if arduinoEnabled:
+                try:
+                    serCam.write(b'1')
+                except Exception as e:
+                    print("Arduino serial might not be started")
 
             # Send to server
-            try:
-                values = {}
-                data = urllib.parse.urlencode(values).encode("utf-8")
-                req = urllib.request.Request(url)
-                with urllib.request.urlopen(req,data=data) as f:
-                    resp = f.read()
-                    print(resp)
-                    print()
-            except Exception as e:
-                print("Server might be down")
+            if serverEnabled:
+                try:
+                    values = {}
+                    data = urllib.parse.urlencode(values).encode("utf-8")
+                    req = urllib.request.Request(url)
+                    with urllib.request.urlopen(req,data=data) as f:
+                        resp = f.read()
+                        print(resp)
+                        print()
+                except Exception as e:
+                    print("Server might be down")
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
