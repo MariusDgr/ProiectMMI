@@ -87,13 +87,13 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                     firstParam = reqParams[2]
                     secondParam = reqParams[3]
 
-                    vol1 = str(int(firstParam))
-                    vol2 = str(int(secondParam))
+                    vol1 = str(int(firstParam)).encode('utf-8')
+                    vol2 = str(int(secondParam)).encode('utf-8')
                     
-                    print(firstParam, secondParam)
+                    print(vol1, vol2)
 
-                    serCam.write(bytes(vol1, 'utf-8'))
-                    serCam.write(bytes(vol2, 'utf-8'))
+                    serCam.write(vol1)
+                    serCam.write(vol2)
 
                     self.send_http_response(str("Started drink"))
 
