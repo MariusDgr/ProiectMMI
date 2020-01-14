@@ -3,10 +3,11 @@ import http.server
 import socketserver
 import serial
 import time
+
 # Initialize serial streams
-# serDrink = serial.Serial('COM3', baudrate=9600)
-# if not serDrink.isOpen():
-#     serDrink.open()
+serDrink = serial.Serial('COM3', baudrate=9600)
+if not serDrink.isOpen():
+    serDrink.open()
 
 time.sleep(3)
 
