@@ -15,21 +15,20 @@ LiquidCrystal_I2C lcd(0x3F, 16, 2);
 
 
 //IRremote
-int receiver = 0; // Signal Pin of IR receiver to Arduino Digital Pin 11
+int receiver = 11; // Signal Pin of IR receiver to Arduino Digital Pin 11
 
 /*-----( Declare objects )-----*/
 IRrecv irrecv(receiver);     // create instance of 'irrecv'
 decode_results results;      // create instance of 'decode_results'
 
 //HX711 constructor (dout pin, sck pin):
-HX711_ADC LoadCell(6, 9);
+HX711_ADC LoadCell(5, 6);
 
-int eepromAdress = 0;
 
 long t;
 #define clk 2
 #define dt 3
-#define sw 5
+#define sw 4
 #define in1 7
 #define in2 8
 #define in3 9
@@ -41,7 +40,7 @@ char screen = 0;
 char subscreen = 0;
 int changestate = -1;
 
-
+String shit;
 int pump1ml = 100;
 int pump2ml = 100;
 
@@ -58,34 +57,35 @@ void calibrate (){
   #endif
   //EEPROM.get(eepromAdress, calValue); // uncomment this if you want to fetch this value from eeprom
 
-  Serial.begin(9600); delay(10);
-  Serial.println();
-  Serial.println("Starting...");
+  Serial.begin(9600); 
+  delay(10);
+//  Serial.println();
+//  Serial.println("Starting...");
   LoadCell.begin();
   long stabilisingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilising time
   LoadCell.start(stabilisingtime);
   if (LoadCell.getTareTimeoutFlag()) {
-    Serial.println("Tare timeout, check MCU>HX711 wiring and pin designations");
+//    Serial.println("Tare timeout, check MCU>HX711 wiring and pin designations");
   }
   else {
     LoadCell.setCalFactor(calValue); // set calibration factor (float)
-    Serial.println("Startup + tare is complete");
+//    Serial.println("Startup + tare is complete");
   }
   while (!LoadCell.update());
-  Serial.print("Calibration factor: ");
-  Serial.println(LoadCell.getCalFactor());  
-  Serial.print("HX711 measured conversion time ms: ");
-  Serial.println(LoadCell.getConversionTime());
-  Serial.print("HX711 measured sampling rate HZ: ");
-  Serial.println(LoadCell.getSPS());
-  Serial.print("HX711 measured settlingtime ms: ");
-  Serial.println(LoadCell.getSettlingTime());
-  Serial.println("Note that the settling time may increase significantly if you use delay() in your sketch!");
+//  Serial.print("Calibration factor: ");
+//  Serial.println(LoadCell.getCalFactor());  
+//  Serial.print("HX711 measured conversion time ms: ");
+//  Serial.println(LoadCell.getConversionTime());
+//  Serial.print("HX711 measured sampling rate HZ: ");
+//  Serial.println(LoadCell.getSPS());
+//  Serial.print("HX711 measured settlingtime ms: ");
+//  Serial.println(LoadCell.getSettlingTime());
+//  Serial.println("Note that the settling time may increase significantly if you use delay() in your sketch!");
   if (LoadCell.getSPS() < 7) {
-    Serial.println("!!Sampling rate is lower than specification, check MCU>HX711 wiring and pin designations");
+//    Serial.println("!!Sampling rate is lower than specification, check MCU>HX711 wiring and pin designations");
   }
   else if (LoadCell.getSPS() > 100) {
-    Serial.println("!!Sampling rate is higher than specification, check MCU>HX711 wiring and pin designations");
+//    Serial.println("!!Sampling rate is higher than specification, check MCU>HX711 wiring and pin designations");
   }
 }
 
@@ -111,8 +111,58 @@ void setup() {
    
   
 }
-
+void startMachine(){
+  lcd.clear();
+          lcd.setCursor(5, 0);
+          lcd.print("Wait!");
+          delay(2000);
+          calibrate();
+          LoadCell.update();
+          delay(2000);
+          lcd.clear();
+          lcd.print("Pump 1 ON");
+          digitalWrite(in2, HIGH);
+  while (((int)LoadCell.getData())*(-1) +7< pump1ml) {
+            LoadCell.update();
+            lcd.clear();
+            lcd.print((-1)*(int)LoadCell.getData()+15);
+            if(((int)LoadCell.getData())*(-1)+7 > pump1ml){
+              digitalWrite(in2, LOW);
+            }
+            delay(1000);
+            
+          }
+          digitalWrite(in4, HIGH);
+          while (((int)LoadCell.getData())*(-1) +7 - pump1ml < pump2ml) {
+            LoadCell.update();
+            lcd.clear();
+            lcd.print((-1)*(int)LoadCell.getData()+15);
+            if(((int)LoadCell.getData())*(-1)+7 - pump1ml > pump2ml){
+              digitalWrite(in4, LOW);
+            }
+            delay(500);
+            
+          }
+          screen = 1;
+          subscreen = 0;
+          changestate = 0;
+          doonce = 0;
+}
 void loop() {
+  if(Serial.available()){
+    shit = Serial.readString();
+    String shit2 = Serial.readString();
+  
+    
+     pump1ml = shit.toInt();
+     pump2ml = shit2.toInt();
+     startMachine();
+    
+    Serial.print(shit);
+    Serial.print(shit2);
+  }
+  
+
    if (irrecv.decode(&results)) // have we received an IR signal?
    {
     translateIR(); 
@@ -124,8 +174,8 @@ void loop() {
   
   if (millis() > t + 250) {
     float i = LoadCell.getData();
-    Serial.print("Load_cell output val: ");
-    Serial.println(i);
+//    Serial.print("Load_cell output val: ");
+//    Serial.println(i);
     t = millis();
   }
   if (TurnDetected) {
@@ -272,41 +322,9 @@ void loop() {
         doonce = 1;
         switch(changestate){
           case 1:
-          lcd.clear();
-          lcd.setCursor(5, 0);
-          lcd.print("Wait!");
-          delay(2000);
-          calibrate();
-          LoadCell.update();
-          delay(2000);
-          lcd.clear();
-          lcd.print("Pump 1 ON");
-          digitalWrite(in2, HIGH);
-          while (((int)LoadCell.getData())*(-1) +7< pump1ml) {
-            LoadCell.update();
-            lcd.clear();
-            lcd.print((-1)*(int)LoadCell.getData()+15);
-            if(((int)LoadCell.getData())*(-1)+7 > pump1ml){
-              digitalWrite(in2, LOW);
-            }
-            delay(1000);
-            
-          }
-          digitalWrite(in4, HIGH);
-          while (((int)LoadCell.getData())*(-1) +7 - pump1ml < pump2ml) {
-            LoadCell.update();
-            lcd.clear();
-            lcd.print((-1)*(int)LoadCell.getData()+15);
-            if(((int)LoadCell.getData())*(-1)+7 - pump1ml > pump2ml){
-              digitalWrite(in4, LOW);
-            }
-            delay(500);
-            
-          }
-          screen = 1;
-          subscreen = 0;
-          changestate = 0;
-          doonce = 0;
+        
+          startMachine();
+          
           break;
         }
         break;
@@ -326,7 +344,8 @@ void translateIR() // takes action based on IR code received
 
   {
 
-  case 0xFF629D: Serial.println(" FORWARD");
+  case 0xFF629D: 
+//  Serial.println(" FORWARD");
   if(changestate == 2 && subscreen == 0){
     pump1ml+=10;
   }
@@ -335,7 +354,8 @@ void translateIR() // takes action based on IR code received
   }
   doonce = 0;
   break;
-  case 0xFF22DD: Serial.println(" LEFT");
+  case 0xFF22DD: 
+//  Serial.println(" LEFT");
   changestate = 0;
    subscreen--;
   if(subscreen < 0){
@@ -343,7 +363,8 @@ void translateIR() // takes action based on IR code received
   }
   doonce = 0;
   break;
-  case 0xFF02FD: Serial.println(" -OK-");
+  case 0xFF02FD: 
+//  Serial.println(" -OK-");
   screen=1;
   changestate ++;
   if(changestate > 2){
@@ -351,7 +372,8 @@ void translateIR() // takes action based on IR code received
     }
     doonce = 0;
   break;
-  case 0xFFC23D: Serial.println(" RIGHT"); 
+  case 0xFFC23D:
+//  Serial.println(" RIGHT"); 
   changestate = 0;
    subscreen++;
   if(subscreen > 2){
@@ -359,7 +381,8 @@ void translateIR() // takes action based on IR code received
   }
   doonce = 0;
   break;
-  case 0xFFA857: Serial.println(" REVERSE"); 
+  case 0xFFA857: 
+//  Serial.println(" REVERSE"); 
   if(changestate == 2 && subscreen == 0){
     pump1ml-=10;
   }
@@ -369,56 +392,69 @@ void translateIR() // takes action based on IR code received
 
   doonce = 0;
   break;
-  case 0xFF6897: Serial.println(" 1");  
+  case 0xFF6897: 
+//  Serial.println(" 1");  
   
   break;
-  case 0xFF9867: Serial.println(" 2"); 
+  case 0xFF9867:
+  //Serial.println(" 2"); 
   
   break;
-  case 0xFFB04F: Serial.println(" 3"); 
+  case 0xFFB04F:
+  //Serial.println(" 3"); 
   
   break;
-  case 0xFF30CF: Serial.println(" 4"); 
+  case 0xFF30CF: 
+  //Serial.println(" 4"); 
   
   break;
-  case 0xFF18E7: Serial.println(" 5"); 
+  case 0xFF18E7:
+  //Serial.println(" 5"); 
   
   break;
-  case 0xFF7A85: Serial.println(" 6");  
+  case 0xFF7A85: 
+ // Serial.println(" 6");  
   
   break;
-  case 0xFF10EF: Serial.println(" 7"); 
+  case 0xFF10EF: 
+//  Serial.println(" 7"); 
   
   break;
-  case 0xFF38C7: Serial.println(" 8");
+  case 0xFF38C7:
+//  Serial.println(" 8");
   
   break;
-  case 0xFF5AA5: Serial.println(" 9");
+  case 0xFF5AA5:
+//  Serial.println(" 9");
   
   break;
-  case 0xFF42BD: Serial.println(" *"); 
+  case 0xFF42BD:
+//  Serial.println(" *"); 
   changestate --;
   if(changestate < 0){
       changestate = 0;
     }
     doonce = 0;
   break;
-  case 0xFF4AB5: Serial.println(" 0");
+  case 0xFF4AB5: 
+//  Serial.println(" 0");
   
   break;
-  case 0xFF52AD: Serial.println(" #"); 
+  case 0xFF52AD: 
+//  Serial.println(" #"); 
   resetFunc(); //call reset 
   break;
-  case 0xFFFFFFFF: Serial.println(" REPEAT");
+  case 0xFFFFFFFF: 
+//  Serial.println(" REPEAT");
   
   doonce = 0;
   break;  
 
-  default: 
-  
-    Serial.println(" other button   ");
-     Serial.println(results.value,HEX);
-
+//  default: 
+//  
+//    Serial.println(" other button   ");
+//     Serial.println(results.value,HEX);
+//
   }// End Case
     doonce = 0;
    delay(200);
