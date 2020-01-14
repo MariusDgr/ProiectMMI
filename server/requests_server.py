@@ -36,9 +36,10 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
         global req
         req = self.requestline
         req = req[5: int(len(req)-9)]
-        print(req)
-
+        req = req.strip('/')
         reqParams = req.split('/')
+
+        print(req)
 
         # Liquid requests
         if reqParams[0] == 'liquid':
@@ -54,17 +55,49 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                 self.send_http_response("turned off")
                 return "Liquid not found", 404
 
-        # # Beverage request
-        # if reqParams[0] == 'beveragemachine':
-        #     print("Got beverage request")
-        #     if reqParams[1] == 'makedrink':
-        #         if len(reqParams) == 4:
-        #             # Send command to arduino
-        #             vol1 = int(reqParams[2])
-        #             vol2 = (reqParams[3])
-        #             print(vol1, vol2)
-
         # Security requests
+        # Check if something was detected
+        if reqParams[1] == 'detected':
+            global changedetected, serCam
+            serCam.write(b"1")
+
+            if camSecurity is True:
+                if changedetected is True:
+                    changedetected = False
+                    self.send_http_response(str({"detected":True}))
+
+            self.send_http_response(str({"detected":False}))
+
+    def do_POST(self):
+        print("Received a post request")
+        global req, serCam
+        req = self.requestline
+        req = req[5: int(len(req)-9)]
+        req = req.strip('/')
+        reqParams = req.split('/')
+        print(req)
+        print(reqParams)
+
+        # Beverage request
+        if reqParams[0] == 'beveragemachine':
+            print("Got beverage request")
+            if reqParams[1] == 'makedrink':
+                if len(reqParams) == 4:
+                    # Send command to arduino
+                    firstParam = reqParams[2]
+                    secondParam = reqParams[3]
+
+                    vol1 = str(int(firstParam))
+                    vol2 = str(int(secondParam))
+                    
+                    print(firstParam, secondParam)
+
+                    serCam.write(bytes(vol1, 'utf-8'))
+                    serCam.write(bytes(vol2, 'utf-8'))
+
+                    self.send_http_response(str("Started drink"))
+
+
         if reqParams[0] == 'securitymodule':
             print("Got security request")
 
@@ -93,19 +126,6 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                 self.send_http_response("Error setting security")
                 return 404
 
-            # Check if something was detected
-            if reqParams[1] == 'detected':
-                global changedetected, serCam
-                serCam.write(b"1")
-
-                if camSecurity is True:
-                    if changedetected is True:
-                        changedetected = False
-                        self.send_http_response(str({"detected":True}))
-
-                self.send_http_response(str({"detected":False}))
-
-    
     def send_http_response(self, message):
         rmesage = bytes(str(message), 'utf-8')
         self.send_response(200)
@@ -114,29 +134,6 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(rmesage)
         print("Sent string {}".format(rmesage))
-
-    def do_POST(self):
-        print("Received a post request")
-        global req
-        req = self.requestline
-        req = req[5: int(len(req)-9)]
-        req = req.strip('/')
-        print(req)
-
-        reqParams = req.split('/')
-        reqParams
-        print(reqParams)
-
-        # Beverage request
-        if reqParams[0] == 'beveragemachine':
-            print("Got beverage request")
-            if reqParams[1] == 'makedrink':
-                if len(reqParams) == 4:
-                    # Send command to arduino
-                    vol1 = int(reqParams[2])
-                    vol2 = int(reqParams[3])
-                    print(vol1, vol2)
-                    self.send_http_response(str("Started drink"))
         
 serverAdress = ('127.0.0.1', 8080)
 httpServer = http.server.HTTPServer(serverAdress, RequestHandlerMMI)
