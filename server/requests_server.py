@@ -66,6 +66,9 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                         self.send_http_response("detected")
                     else:
                         self.send_http_response("notdetected")
+
+                else:
+                    self.send_http_response("Security is turned off")
                     
                 return 200
 
