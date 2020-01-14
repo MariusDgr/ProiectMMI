@@ -56,17 +56,19 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                 return "Liquid not found", 404
 
         # Security requests
-        # Check if something was detected
-        if reqParams[1] == 'detected':
-            global changedetected, serCam
-            serCam.write(b"1")
+        if reqParams[0] == 'securitymodule':
+            print("Got security request")
+            # Check if something was detected
+            if reqParams[1] == 'detected':
+                global changedetected, serCam
+                serCam.write(b"1")
 
-            if camSecurity is True:
-                if changedetected is True:
-                    changedetected = False
-                    self.send_http_response(str({"detected":True}))
+                if camSecurity is True:
+                    if changedetected is True:
+                        changedetected = False
+                        self.send_http_response(str({"detected":True}))
 
-            self.send_http_response(str({"detected":False}))
+                self.send_http_response(str({"detected":False}))
 
     def do_POST(self):
         print("Received a post request")
@@ -93,6 +95,7 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                     print(vol1, vol2)
 
                     serCam.write(vol1)
+                    time.sleep(1)
                     serCam.write(vol2)
 
                     self.send_http_response(str("Started drink"))
