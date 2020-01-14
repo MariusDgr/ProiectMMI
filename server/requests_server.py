@@ -4,10 +4,9 @@ import socketserver
 import serial
 import time
 # Initialize serial streams
-# serDrink = serial.Serial('COM5', baudrate=9600, timeout=1)
-serCam = serial.Serial('COM3', baudrate=9600)
-if not serCam.isOpen():
-    serCam.open()
+# serDrink = serial.Serial('COM3', baudrate=9600)
+# if not serDrink.isOpen():
+#     serDrink.open()
 
 time.sleep(3)
 
@@ -33,7 +32,7 @@ liquids = [
 class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         print("Received a get request")
-        global req
+        global req, changeDetected, camSecurity
         req = self.requestline
         req = req[5: int(len(req)-9)]
         req = req.strip('/')
@@ -60,18 +59,19 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
             print("Got security request")
             # Check if something was detected
             if reqParams[1] == 'detected':
-                global changeDetected, camSecurity
-
+                
                 if camSecurity is True:
                     if changeDetected is True:
                         changeDetected = False
                         self.send_http_response("detected")
-
-                self.send_http_response("notdetected")
+                    else:
+                        self.send_http_response("notdetected")
+                    
+                return 200
 
     def do_POST(self):
         print("Received a post request")
-        global req, serCam
+        global req, serDrink, camSecurity, changeDetected
         req = self.requestline
         req = req[5: int(len(req)-9)]
         req = req.strip('/')
@@ -93,9 +93,9 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                     
                     print(vol1, vol2)
 
-                    serCam.write(vol1)
+                    serDrink.write(vol1)
                     time.sleep(1)
-                    serCam.write(vol2)
+                    serDrink.write(vol2)
 
                     self.send_http_response(str("Started drink"))
 
@@ -105,7 +105,7 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
 
             # Turn security on or off
             if reqParams[1] == 'securityonoff':
-                global camSecurity
+               
 
                 option = reqParams[2]
                 if option == '1':
@@ -128,11 +128,14 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                 self.send_http_response("Error setting security")
                 return 404
 
+            # Notify of intruder
             if reqParams[1] == 'intruder':
-                # global camSecurity
                 print("Notified of intruder")
-                global changeDetected
                 changeDetected = True
+                self.send_http_response("Server was notified")
+                return 200
+
+            
 
     def send_http_response(self, message):
         rmesage = bytes(str(message), 'utf-8')
