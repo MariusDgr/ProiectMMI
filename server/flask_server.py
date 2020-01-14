@@ -2,17 +2,11 @@ from flask import Flask, jsonify
 from flask_restful import Api, Resource, reqparse
 
 import serial
-
-# Initialize serial streams
-# serDrink = serial.Serial('COM5', baudrate=9600, timeout=1)
-serCam = serial.Serial('COM5', baudrate=9600, timeout=1)
-if not serCam.isOpen():
-    serCam.open()
+import socket
 
 # Server states
-cam_security = False
+camSecurity = False
 changedetected = False
-
 
 app = Flask(__name__)
 api = Api(app)
@@ -55,7 +49,8 @@ def get_liquid(name):
     return "Liquid not found", 404
 
 @app.route("/liquid/post/<string:name>/<int:volume>")
-def post_liquid(name):
+def post_liquid(name, volume):
+    global liquids
     parser = reqparse.RequestParser()
     parser.add_argument("volume")
     args = parser.parse_args()
@@ -66,7 +61,7 @@ def post_liquid(name):
 
     liquid = {
         "name": name,
-        "volume": args["volume"],
+        "volume": volume,
     }
 
     liquids.append(liquid)
@@ -74,6 +69,7 @@ def post_liquid(name):
 
 @app.route("/liquid/put/<string:name>/<int:volume>")
 def put_liquid(name):
+    global liquids
     parser = reqparse.RequestParser()
     parser.add_argument("volume")
     args = parser.parse_args()
@@ -101,10 +97,10 @@ def delete_liquid(name):
 @app.route("/securitymodule/detected")
 def intruder_detected():
     global changedetected, serCam
-    if cam_security is True:
+    if camSecurity is True:
         if changedetected is True:
             changedetected = False
-            serCam.write(b"1")
+            
             return {"detected":True}
 
     return {"detected":False} 
@@ -112,18 +108,18 @@ def intruder_detected():
 @app.route("/securitymodule/<int:securityonoff>")
 def security_switch(securityonoff):
     """Enables or disables camera security"""
-    global cam_security
+    global camSecurity
 
     if securityonoff == 1:
-        cam_security = True
+        camSecurity = True
     elif securityonoff == 0:
-        cam_security = False
+        camSecurity = False
     else:
         print("Some strange case")
     
-    if cam_security is True:
+    if camSecurity is True:
         return "Security activated"
-    elif cam_security is False:
+    elif camSecurity is False:
         return "Security deactivated"
 
     return "Error setting security"
