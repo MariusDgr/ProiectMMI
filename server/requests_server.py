@@ -12,8 +12,8 @@ if not serCam.isOpen():
 time.sleep(3)
 
 # Server states
-camSecurity = False
-changedetected = False
+camSecurity = True
+changeDetected = False
 
 liquids = [
     {
@@ -60,15 +60,14 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
             print("Got security request")
             # Check if something was detected
             if reqParams[1] == 'detected':
-                global changedetected, serCam
-                serCam.write(b"1")
+                global changeDetected, camSecurity
 
                 if camSecurity is True:
-                    if changedetected is True:
-                        changedetected = False
-                        self.send_http_response(str({"detected":True}))
+                    if changeDetected is True:
+                        changeDetected = False
+                        self.send_http_response("detected")
 
-                self.send_http_response(str({"detected":False}))
+                self.send_http_response("notdetected")
 
     def do_POST(self):
         print("Received a post request")
@@ -128,6 +127,12 @@ class RequestHandlerMMI(http.server.BaseHTTPRequestHandler):
                 print("Error setting security")
                 self.send_http_response("Error setting security")
                 return 404
+
+            if reqParams[1] == 'intruder':
+                # global camSecurity
+                print("Notified of intruder")
+                global changeDetected
+                changeDetected = True
 
     def send_http_response(self, message):
         rmesage = bytes(str(message), 'utf-8')
